@@ -1,0 +1,29 @@
+{
+  "name": "淘金币双11狂享20亿",
+  "description": "⏹ 双11活动已结束\n原“领淘金币”入口现进入淘金币日常。请选择“淘金币日常”运行当前任务，双11活动的历史记录继续保留。",
+  "entry_labels": [
+    "领淘金币",
+    "淘金币",
+    "双11赢20亿"
+  ],
+  "task_entry_labels": [
+    "赚能量",
+    "做任务赚能量",
+    "赚体力",
+    "做任务",
+    "赚喵币"
+  ],
+  "bundle_by_default": true,
+  "rescan": {
+    "list_name": "赚能量任务",
+    "rescan_rounds": 3,
+    "rescan_retries": 2,
+    "rescan_restart_app": false,
+    "rescan_restart_max": 1,
+    "rescan_start_pause": 3,
+    "scroll_top": 0.66,
+    "scroll_step": 0.12,
+    "scroll_times": 3,
+    "scroll_pause": 0.35
+  }
+}

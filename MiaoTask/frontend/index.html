@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light"><title>MiaoTask · 设备任务工作台</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/miaotask-32.png"><link rel="icon" type="image/png" sizes="16x16" href="/assets/miaotask-16.png"><link rel="apple-touch-icon" sizes="180x180" href="/assets/miaotask-180.png">
+  <script src="/js/components/themes.js"></script><link rel="stylesheet" href="/css/base.css"><link rel="stylesheet" href="/css/themes.css"><script src="/js/api.js" defer></script><script src="/js/components/dialogs.js" defer></script><script src="/js/components/rankings.js" defer></script><script src="/js/components/preview-controls.js" defer></script><script src="/js/components/activity-selector.js" defer></script><script src="/js/components/activity-center.js" defer></script><script src="/js/components/wifi-connect.js" defer></script><script src="/js/components/device-manager.js" defer></script><script src="/js/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="MiaoTask 首页"><span class="brand-icon"><img src="/assets/miaotask-64.png" srcset="/assets/miaotask-128.png 2x" width="40" height="40" alt=""></span><span class="brand-name">MiaoTask</span></a>
+    <nav class="top-navigation" aria-label="工作台导航">
+      <button type="button" class="feature-button" id="activity-center-open">活动中心</button>
+      <button type="button" class="feature-button" id="common-settings-open" disabled>公共设置</button>
+      <button type="button" class="feature-button" id="rankings-open">排行榜</button>
+      <button type="button" class="feature-button" id="preview-toggle" aria-pressed="true" aria-controls="preview-sidebar">画面与提示</button>
+      <button type="button" class="feature-button" id="themes-open">外观</button>
+      <a class="text-button" href="/api/report" download title="下载当前设备的任务和日志">导出记录 ↗</a>
+    </nav>
+    <div class="top-meta"><span class="local-dot"></span> 本地运行</div>
+  </header>
+  <aside class="device-manager device-rail" aria-label="多设备管理">
+    <div class="device-rail-heading"><h2>设备</h2><span id="device-count">0 / 8</span></div>
+    <p class="device-rail-hint">点击切换 · 勾选批量操作</p>
+    <div class="device-rail-list"><div id="device-tabs" role="tablist" aria-label="切换设备" aria-orientation="vertical"></div>
+      <button type="button" id="add-device" class="device-add"><span aria-hidden="true">＋</span>添加设备</button>
+    </div>
+    <div class="device-batch">
+      <p id="batch-selection">已选 1 台设备</p>
+      <button type="button" class="button orange" id="batch-run" title="向勾选设备发送当前活动计划和公共设置，各设备独立执行">▶ 一键启动</button>
+      <div class="device-batch-secondary"><button type="button" class="text-button" id="batch-open-app">唤醒</button><button type="button" class="text-button" id="batch-stop">停止</button></div>
+<span id="batch-result" role="status"></span>
+    </div>
+  </aside>
+  <main>
+    <div class="workspace-status"><div class="status-pill" id="connection-label"><span></span>等待连接</div></div>
+    <div class="workspace">
+      <section class="main-column">
+        <section class="card setup-card" aria-labelledby="setup-title"><div class="section-heading"><h2 id="setup-title"><span class="step">01</span>活动计划</h2><span class="current-device-caption" id="current-device-name">未连接设备</span></div>
+          <div class="application-switcher"><span class="field-label">应用</span><nav id="application-nav" role="tablist" aria-label="浏览已安装应用"></nav></div>
+          <section class="activity-selection" aria-label="本设备活动选择"><h3 id="activity-selection-title">选择要执行的活动</h3><div id="activity-tiles" class="activity-tiles"></div><details class="pipeline-details"><summary>执行顺序 <span id="pipeline-count">0</span><span class="pipeline-expand-hint">排序 / 移除</span></summary><div class="pipeline-heading"><strong>按以下顺序执行</strong><button type="button" class="text-button" id="pipeline-clear">清空选择</button></div><div id="activity-pipeline"></div></details><p class="field-hint">勾选后按顺序执行；各设备独立运行。</p></section>
+          <div hidden><select id="activity-app" aria-label="当前应用"></select><select id="activity-choice" aria-label="当前活动"></select><button id="activity-apply" type="button">选择活动</button></div><form id="settings-form">
+          <div hidden><span id="activity-name"></span><span id="settings-summary"></span><span id="instance-summary"></span><button id="toggle-instances" type="button"></button></div>
+          <dialog id="common-settings" class="workbench-dialog" aria-labelledby="common-settings-title">
+            <div class="activity-center-heading"><div><h2 id="common-settings-title">公共设置</h2><p class="dialog-context" id="settings-device-label">正在读取当前设备…</p></div><button type="button" class="feature-button" id="common-settings-close">关闭 ✕</button></div>
+            <p class="settings-scope">作用于当前设备的活动计划；批量启动时发送给勾选设备。入口和识别规则由活动包提供，目前无需逐活动配置。</p>
+            <div class="settings-buttons" aria-label="设置分类">
+              <button type="button" class="feature-button" id="settings-tasks-button" data-settings-toggle="tasks" aria-expanded="false" aria-controls="settings-tasks">任务设置</button>
+              <button type="button" class="feature-button" id="settings-scroll-button" data-settings-toggle="scroll" aria-expanded="false" aria-controls="settings-scroll">滚动节奏</button>
+              <button type="button" class="feature-button" id="settings-advanced-button" data-settings-toggle="advanced" aria-expanded="false" aria-controls="settings-advanced">高级选项</button>
+              <button type="button" class="feature-button" id="settings-keywords-button" data-settings-toggle="keywords" aria-expanded="false" aria-controls="settings-keywords">公共词表</button>
+            </div>
+            <div class="common-settings-body">
+          <section class="settings-panel" id="settings-keywords" data-settings-panel="keywords" aria-labelledby="settings-keywords-button" hidden>
+            <div class="settings-panel-heading"><div><h3>公共词表</h3><p>跨应用复用，保存到系统用户目录；升级保留，下次开始时生效。</p></div></div>
+            <div class="keyword-settings">
+              <label>任务搜索输入词<textarea id="task-search-keywords" rows="3" maxlength="4000" placeholder="例如：手机壳；日用品；123"></textarea><small>用中文/英文分号、空格或换行分隔，每次从词表随机抽取一个词。留空沿用活动默认输入；活动入口的专用搜索词保持不变。输入受限时可能回退数字搜索，不更换输入法。</small></label>
+              <label>常驻跳过关键词<textarea id="skip-task-keywords" rows="3" maxlength="4000" placeholder="例如：微博；快手；头条"></textarea><small>预置原有跳过关键词，可自由增删；标题或任务说明包含任一词就跳过，按普通文本匹配，英文不区分大小写。清空任务标记不会清除此词表；删除对应词后重新开始可恢复执行。</small></label>
+            </div>
+          </section>
+          <section class="settings-panel" id="settings-tasks" data-settings-panel="tasks" aria-labelledby="settings-tasks-button" hidden>
+            <div class="settings-panel-heading"><div><h3>任务设置</h3><p>首轮浏览与失败后的补滑复查用于淘宝标准浏览；月月赚保留活动短停留策略。</p></div></div>
+            <div class="options-grid task-options"><label>浏览基础时长 / 秒（不低于任务要求）<input type="number" id="browse-seconds" value="15" min="1" max="120" required></label><label>完成后随机返回延时 / 毫秒（0 立即返回）<input type="number" id="completion-return-ms" value="1000" min="0" max="10000" step="1" required><span class="field-hint">默认随机0～1000毫秒；CPU识别较慢可设为0。不保证避免验证。</span></label><label>重试时补滑复查次数<input type="number" id="browse-recheck-rounds" value="3" min="0" max="10" step="1" required></label><label>同一任务今日失败上限<input type="number" id="max-attempts" value="2" min="1" max="3" required></label><label>本轮最多执行次数<input type="number" id="max-tasks" value="80" min="1" max="300" required></label></div>
+            <span class="field-label settings-field-label">本轮任务类型</span><div class="task-kind-options" aria-label="本轮任务类型"><label><input type="checkbox" id="kind-browse" checked>浏览</label><label><input type="checkbox" id="kind-search" checked>搜索</label><label><input type="checkbox" id="kind-visit" checked>跳转</label><label><input type="checkbox" id="kind-claim" checked>累计领奖</label></div>
+
+            <p class="field-hint">确认页面后连续浏览，不并发截图。实际使用CUDA时首轮结束也检查并有界补滑；CPU首轮到时返回列表，未完成的任务再次进入后停1秒复查。列表进度决定是否成功。支付、邀请、关注及答题留待本人处理。</p>
+          </section>
+          <section class="settings-panel" id="settings-scroll" data-settings-panel="scroll" aria-labelledby="settings-scroll-button" hidden>
+            <div class="settings-panel-heading"><div><h3>滚动节奏</h3><p>在设置范围内变化滑动，默认不增加额外等待。</p></div></div>
+            <div class="settings-switch"><label><input type="checkbox" id="scroll" checked><span>浏览期间持续上下滚动<small>连续数次后反向，仍会检查完成提示和安全验证</small></span></label></div>
+            <div class="swipe-settings">
+              <div class="swipe-range-row"><div><strong>滑动距离</strong><small>占手机屏幕高度</small></div><label>最小 / %<input type="number" id="swipe-distance-min" aria-label="滑动距离最小 / 屏高 %" value="18" min="8" max="50" step="1" required></label><label>最大 / %<input type="number" id="swipe-distance-max" aria-label="滑动距离最大 / 屏高 %" value="36" min="8" max="50" step="1" required></label></div>
+              <div class="swipe-range-row"><div><strong>滑动时长</strong><small>单次手势的持续时间</small></div><label>最小 / 秒<input type="number" id="swipe-duration-min" aria-label="滑动时长最小 / 秒" value="0.25" min="0.15" max="1.5" step="0.01" required></label><label>最大 / 秒<input type="number" id="swipe-duration-max" aria-label="滑动时长最大 / 秒" value="0.65" min="0.15" max="1.5" step="0.01" required></label></div>
+              <div class="swipe-range-row"><div><strong>额外间隔</strong><small>均为0时连续滑动，首轮不做中途识别</small></div><label>最小 / 秒<input type="number" id="swipe-interval-min" aria-label="额外间隔最小 / 秒" value="0" min="0" max="3" step="0.01" required></label><label>最大 / 秒<input type="number" id="swipe-interval-max" aria-label="额外间隔最大 / 秒" value="0" min="0" max="3" step="0.01" required></label></div>
+              <div class="swipe-range-row"><div><strong>同方向连续次数</strong><small>达到次数后切换方向</small></div><label>最小 / 次<input type="number" id="swipe-burst-min" aria-label="同方向连续次数最小" value="1" min="1" max="5" step="1" required></label><label>最大 / 次<input type="number" id="swipe-burst-max" aria-label="同方向连续次数最大" value="3" min="1" max="5" step="1" required></label></div>
+            </div><p class="field-hint">实际速度受手机和识别耗时影响。变化的滚动节奏不保证规避平台风控。</p>
+          </section>
+
+          <section class="settings-panel" id="settings-advanced" data-settings-panel="advanced" aria-labelledby="settings-advanced-button" hidden>
+            <div class="settings-panel-heading"><div><h3>高级选项</h3><p>跨应用访问、页面识别与设备运行选项。</p></div></div>
+            <div class="settings-switch"><label><input type="checkbox" id="cross-app" checked><span>完成跨应用跳转并返回<small>返回失败时有限尝试恢复所选应用实例</small></span></label></div>
+            <div class="settings-switch"><label><input type="checkbox" id="ocr" checked><span>页面不可读时使用本地 OCR<small>手机截图在电脑本地识别</small></span></label></div>
+            <div class="advanced-network">
+              <label class="field-label" for="ocr-device">OCR 推理后端</label>
+              <select id="ocr-device"><option value="auto">自动（检测到 GPU 加速包就用，否则 CPU）</option><option value="cpu">强制 CPU</option><option value="cuda">强制 CUDA（需 NVIDIA 显卡）</option><option value="dml">强制 DirectML（AMD / Intel 显卡）</option></select>
+              <p class="field-hint" id="ocr-device-hint">GPU 加速包可用时，自动或对应后端会使用 GPU；保存后下次识别生效。</p>
+              <label class="field-label" for="download-proxy">活动下载代理</label>
+              <input type="text" id="download-proxy" autocomplete="off" spellcheck="false" placeholder="留空沿用系统代理；http://127.0.0.1:7890；off 强制直连">
+              <p class="field-hint">仅用于活动中心访问 GitHub 下载活动，不影响设备连接。</p>
+            </div>
+            <div class="settings-switch"><label><input type="checkbox" id="reset-after-activity"> 活动结束后清理标记并复查一次</label></div><div class="settings-switch"><label><input type="checkbox" id="clear-clipboard" checked><span>开始前清空设备剪贴板<small>减少残留助力链接弹窗；不读取内容，不更换输入法</small></span></label></div><div class="resource-setting-row"><label class="resource-toggle"><input type="checkbox" id="keep-screen-on"><span>开始时唤醒并设置息屏时间<small>修改设备的自动息屏超时，结束后恢复原值</small></span></label><label class="resource-value">息屏 / 分钟<input type="number" id="screen-timeout-minutes" min="1" max="1440" step="1" value="10" required></label></div><div class="settings-switch"><label><input type="checkbox" id="minimum-volume"><span>执行时媒体音量最低<small>开始时降低设备媒体音量并核验，结束后恢复</small></span></label></div><div class="settings-switch"><label><input type="checkbox" id="minimum-brightness"><span>执行时屏幕亮度最低<small>暂时关闭自动亮度，结束后恢复；不关闭屏幕</small></span></label></div><p class="field-hint">公共配置应用或开始时保存到系统用户目录，升级保留。设备不支持的设置仅记录提示。</p>
+          <div class="resource-setting-row"><label class="resource-toggle"><input type="checkbox" id="compressed-screenshots"><span>使用压缩截图<small>默认全分辨率 PNG；开启同尺寸 JPEG，减少无线传输量。</small></span></label><label class="resource-value">JPEG 质量<input type="number" id="screenshot-quality" min="30" max="95" step="1" value="70" required></label></div></section>
+          <div class="settings-save" id="settings-save" hidden><span>关闭保留本页修改，下次开始时使用</span><button type="button" class="button settings-apply" id="save-settings">应用设置</button></div>            </div>
+          </dialog></form>
+        </section>
+        <section class="execution-card" aria-labelledby="execution-title"><div class="execution-body"><div class="execution-symbol" id="execution-symbol">◌</div><div class="execution-copy"><div class="eyebrow" id="phase-label">READY WHEN YOU ARE</div><h2 id="execution-title">准备好，再出发</h2><p id="message">连接设备后点击开始，助手将恢复所选应用、进入活动并识别任务。</p></div><div class="countdown" id="countdown" hidden><strong id="remaining">0</strong><span>秒后处理</span></div></div><div class="action-bar"><div class="primary-actions"><button class="button orange" id="run" disabled><span>▶</span> 开始自动执行</button><button type="button" class="feature-button" id="reset-tasks" disabled title="仅清理当前活动实例的任务标记，保留今日统计">清空任务标记</button><span class="action-hint">先识别，再执行</span></div><div class="secondary-actions"><button class="button ghost" id="pause" disabled>Ⅱ 暂停</button><button class="button ghost stop" id="stop" disabled>□ 停止</button></div></div><div id="instance-attention" role="status" aria-live="polite" hidden style="padding:0 24px 20px"><p id="instance-attention-message" style="font-size:15px;line-height:1.9;margin:0 0 12px;color:inherit"></p><div class="settings-buttons"><button type="button" class="button ghost" id="refresh-instances-visible">↻ 刷新应用实例</button><button type="button" class="button ghost" id="choose-instance-visible">选择应用实例</button></div></div></section>
+        <div class="stats-context"><strong id="daily-label">连接后读取本设备今日统计</strong><span id="daily-note">同一设备、同一实例当天累计保存，重新开始不会清零</span></div>
+        <div class="stats-grid"><div class="stat"><span title="按已核验的进度次数累计，0/10做到10/10计10次；重试不加成功数">今日核验完成</span><div><strong id="stat-completed">0</strong><small>次进度</small></div></div><div class="stat"><span>今日成功领奖</span><div><strong id="stat-claims">0</strong><small>次</small></div></div><div class="stat"><span>今日跨应用跳转</span><div><strong id="stat-cross">0</strong><small>次</small></div></div><div class="stat"><span>今日跳过任务</span><div><strong id="stat-skipped">0</strong><small>项</small></div></div><div class="stat"><span>今日未通过核验</span><div><strong id="stat-failed">0</strong><small>项</small></div></div></div>
+        <p class="round-summary" id="round-summary">本轮尚未开始</p>
+        <section class="card results-card"><div class="results-header"><div class="tabs" role="tablist" aria-label="执行详情"><button class="tab active" id="tasks-tab" role="tab" aria-selected="true" aria-controls="tasks-panel">任务列表 <span id="task-count">0</span></button><button class="tab" id="logs-tab" role="tab" aria-selected="false" aria-controls="logs-panel">运行日志</button></div><span class="elapsed" id="elapsed">本轮运行 00:00</span></div><div id="tasks-panel" role="tabpanel" aria-labelledby="tasks-tab"><div class="filters" aria-label="任务筛选"><button class="filter active" data-filter="all">全部</button><button class="filter" data-filter="auto">可执行</button><button class="filter" data-filter="manual">需处理</button><span>完成情况以返回后的进度核验为准</span></div><div class="task-table" id="task-table"><div class="empty-state"><div class="empty-icon">☷</div><h3>任务还没入场</h3><p>连接后点击「开始自动执行」<br>将显示重新识别出的任务和处理结果。</p></div></div></div><div id="logs-panel" role="tabpanel" aria-labelledby="logs-tab" hidden><div class="log-list" id="log-list"><p class="log-empty">执行日志会显示在这里。</p></div></div></section>
+        <details class="card diagnostics-card" id="diagnostics" hidden><summary>失败现场与反馈 <span>仅保存在本机</span></summary><p id="last-failure">执行异常时保存现场。</p><span class="field-label">当前设备当日失败目录</span><code id="failure-folder"></code><div class="diagnostics-actions"><a href="/api/diagnostics" download>导出当日诊断包 ↗</a><span>含原始手机截图及日志，提交 Issue 前请检查并遮挡个人信息。</span></div></details>
+        <footer>每一步都有回程。<span>仅本机访问 · 截图识别在本地完成 · <span id="app-version"></span></span></footer>
+      </section>
+      <aside class="side-column" id="preview-sidebar"><section class="card preview-card"><div class="section-heading"><h2><span class="live-dot"></span>手机画面</h2><div class="preview-actions"><button type="button" class="feature-button" id="capture" disabled>↻ 刷新</button><button type="button" class="feature-button" id="preview-expand" disabled>放大 ↗</button></div></div><div class="phone"><div class="phone-screen"><img id="phone-image" alt="连接手机后的屏幕预览" hidden><div id="phone-placeholder"><svg viewBox="0 0 48 64" aria-hidden="true"><rect x="9" y="3" width="30" height="56" rx="6"/><path d="M19 9h10M21 52h6"/></svg><span>等待手机连接</span><small>让任务有迹可循</small></div></div></div><div class="preview-controls"><label for="preview-size">画面宽度 <output id="preview-size-value" for="preview-size">220 px</output></label><input type="range" id="preview-size" min="160" max="280" step="10" value="220"><p>执行时仅在观察节点更新画面；连续浏览期间保留最近一帧。</p></div><div class="preview-meta"><span id="preview-source">尚未读取页面</span><span id="preview-time">—</span></div><div class="package-name" id="package-name">设备未连接</div></section>
+      <details class="help-card"><summary>使用小提示<span>验证与统计</span></summary><div class="help-body"><span class="help-number">小提示 / 01</span><h3>开始之前，自动核定。</h3><p>默认自动恢复所选应用并进入活动任务列表。每次开始、返回都会读取当前任务，替换出的新任务也会更新。</p><div class="help-line"></div><p>遇到验证或登录请本人处理。处理后再次开始，助手会重新定位活动。滑块适配暂列待办，不自动尝试破解。</p><div class="help-line"></div><p>统计按设备、应用、活动、实例与日期分别保存。便携版记录放在系统用户目录，更新解压文件夹后仍保留。当天缺失的应用次日重新判断。</p></div></details>
+      </aside>
+    </div>
+  </main>
+<dialog id="add-device-panel" class="workbench-dialog" aria-labelledby="add-device-title">
+  <div class="activity-center-heading"><div><h2 id="add-device-title">设备连接</h2><p class="dialog-context" id="device-editor-context">新增或管理设备连接</p></div><button type="button" class="feature-button" id="add-device-close">关闭 ✕</button></div>
+  <div class="device-editor-body">
+          <section class="instance-settings" id="instance-panel" aria-label="应用分身设置">
+            <div><div class="settings-panel-heading"><div><h3>应用分身</h3><p>需要多个账号时再开启，同一时间只执行一个实例。</p></div></div></div>
+            <div><div class="instance-heading"><label for="app-instance">执行哪个应用实例</label><select id="app-instance" disabled><option value="">连接后读取应用与分身</option></select><button type="button" class="text-button" id="refresh-instances" disabled>↻ 刷新实例</button></div></div>
+            <p class="field-hint" id="instance-hint">按包名与用户空间区分实例，不读取账号信息。</p>
+            <label class="queue-toggle"><input type="checkbox" id="sequence-instances">自动执行全部应用分身<span>按识别顺序串行执行，包含主应用；每个实例独立核验</span></label>
+            <div id="instance-options" hidden></div><div id="instance-results" class="instance-results" aria-live="polite"></div>
+          </section>
+    <div class="device-name-row"><label>设备名称<input id="new-device-name" maxlength="60" placeholder="例如：我的手机、平板"></label><button type="button" class="feature-button" id="confirm-add-device">保存名称</button></div>
+    <div class="device-editor-tools"><label>已发现设备<select id="new-device-address"><option value="">选择设备或填写下方地址</option></select></label><button type="button" class="text-button" id="discover">↻ 检测设备</button><button type="button" class="text-button" id="find-emulators">查找模拟器</button></div>
+    <p id="add-device-message" class="field-hint" role="status"></p>
+    <div class="connection-methods" role="group" aria-label="连接方式"><button type="button" class="feature-button" data-connection-mode="usb" aria-pressed="true">USB / 模拟器</button><button type="button" class="feature-button" data-connection-mode="wifi" aria-pressed="false">Wi-Fi 无线</button></div>
+    <div id="device-connection-fields">
+<div class="connection-grid" id="wired-connection"><label>设备平台<select id="device-type" form="settings-form"><option value="uiautomator2">Android · 安卓</option><option value="hmdriver2">HarmonyOS · 鸿蒙</option></select></label><label class="device-field">设备 / 无线调试地址<input id="serial" form="settings-form" placeholder="自动选择已连接手机" list="device-options" maxlength="128"><datalist id="device-options"></datalist></label><button type="button" class="button dark" id="connect">连接设备 <span>↗</span></button></div>
+          <p class="field-hint" id="device-hint">请保持手机解锁，并开启 USB 调试。</p>
+          <details class="wifi-manager" id="wifi-manager">
+            <summary>无线调试连接<span>Android 11 及以上</span></summary>
+            <p class="field-hint">手机和电脑连接同一 Wi-Fi。在手机「设置 → 开发者选项 → 无线调试」中开启无线调试，并允许当前网络。不同系统的设置位置可能不同。</p>
+            <label class="wifi-address-mode"><input type="checkbox" id="wifi-full-address">使用完整地址 / IPv6</label><div class="settings-buttons" aria-label="无线连接方式">
+              <button type="button" class="feature-button is-open" id="wifi-first" aria-pressed="true">首次配对</button>
+              <button type="button" class="feature-button" id="wifi-known" aria-pressed="false">已经配对</button>
+              <button type="button" class="text-button" id="wifi-discover">↻ 查找无线设备</button>
+            </div>
+            <section id="wifi-pair-panel" aria-label="首次无线配对">
+              <h3>1. 配对这台电脑</h3>
+              <p class="field-hint">在手机点击「使用配对码配对设备」，按弹窗填写下方两项。点击配对后请保持弹窗打开，旧配对码失效时重新填写。</p>
+              <div class="connection-grid">
+                <label>弹窗里的 IP 地址和端口<input id="wifi-pair-address" placeholder="例如 192.168.1.8:37123" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="128" list="wifi-pair-options"><datalist id="wifi-pair-options"></datalist></label>
+                <label>六位 Wi-Fi 配对码<input id="wifi-code" type="password" inputmode="numeric" placeholder="手机配对弹窗显示的 6 位数字" maxlength="6" autocomplete="off"></label>
+                <button type="button" class="button dark" id="wifi-pair">配对手机</button>
+              </div>
+              <p class="field-hint">配对码仅用于本次配对，不写入日志或设置。</p>
+            </section>
+            <section aria-label="连接已配对手机">
+              <h3 id="wifi-connect-title">2. 连接手机</h3>
+              <p class="field-hint">配对成功后关闭手机配对弹窗，IP 会沿用刚才的配对地址，只需填写「无线调试」主页面的连接端口；换网时可修改 IP。<strong>这是连接端口，通常与刚才的配对端口不同。</strong></p>
+              <div class="wifi-connect-grid">
+                <label>无线调试主页面的 IP 地址和端口<input id="wifi-connect-address" placeholder="例如 192.168.1.8:40567" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="128" list="wifi-connect-options"><datalist id="wifi-connect-options"></datalist></label>
+                <button type="button" class="button dark" id="wifi-connect">无线连接</button>
+              </div>
+            </section>
+            <p id="wifi-status" class="field-hint" role="status" aria-live="polite">无法自动发现时也可以手动填写地址；校园网可能限制手机和电脑互访，可改用同一个个人热点。重开无线调试或换网后，请核对新地址。</p>
+          </details>
+    </div>
+  </div>
+  <div class="device-editor-footer"><span id="device-editor-state" role="status">尚未连接</span><button type="button" class="text-button danger-button" id="remove-device">移除设备</button></div>
+</dialog><dialog id="preview-dialog" aria-labelledby="preview-dialog-title"><div class="activity-center-heading"><h2 id="preview-dialog-title">手机画面</h2><button type="button" class="feature-button" id="preview-dialog-close">关闭 ✕</button></div><div class="preview-expanded-body"><img id="preview-expanded-image" alt="当前设备的放大画面"></div></dialog>
+<dialog id="rankings-dialog" class="workbench-dialog" aria-labelledby="rankings-title">
+  <div class="activity-center-heading"><div><h2 id="rankings-title">排行榜</h2><p class="dialog-context">本机累计 · 匿名设备标识 · 分身合并统计</p></div><button type="button" class="feature-button" id="rankings-close">关闭 ✕</button></div>
+  <div class="ranking-toolbar">
+    <div class="segmented" role="group" aria-label="统计分组"><button type="button" data-ranking-group="app" aria-pressed="true">按应用</button><button type="button" data-ranking-group="activity" aria-pressed="false">按活动</button></div>
+    <div class="segmented" role="group" aria-label="统计日期"><button type="button" data-ranking-period="all" aria-pressed="true">累计</button><button type="button" data-ranking-period="today" aria-pressed="false">今日</button></div>
+    <button type="button" class="feature-button" id="rankings-refresh">↻ 刷新</button>
+  </div>
+  <p class="field-hint" id="rankings-status" role="status">正在读取本机累计记录…</p>
+  <div class="ranking-table-wrap"><table class="ranking-table"><thead><tr><th scope="col">排名</th><th scope="col">设备</th><th scope="col">应用</th><th scope="col" id="rankings-activity-heading" hidden>活动</th><th scope="col" aria-sort="descending"><button type="button" data-ranking-metric="elapsed" aria-pressed="true">运行时长 ↓</button></th><th scope="col"><button type="button" data-ranking-metric="completed" aria-pressed="false">核验完成 ↓</button></th><th scope="col"><button type="button" data-ranking-metric="skipped" aria-pressed="false">跳过 ↓</button></th><th scope="col"><button type="button" data-ranking-metric="failed" aria-pressed="false">失败 ↓</button></th></tr></thead><tbody id="rankings-rows"></tbody></table></div>
+  <div class="ranking-footnote"><p>点击表头切换排序。运行时长、完成与失败沿用任务日记录口径；安全验证现场不直接计为任务失败。仅在本机汇总，不上传。</p><details><summary>记录保存位置</summary><code id="rankings-folder"></code><p>便携版默认保存于系统用户目录，更新程序文件夹后继续保留。</p></details></div>
+</dialog>
+<dialog id="themes-dialog" class="workbench-dialog" aria-labelledby="themes-title">
+  <div class="activity-center-heading"><div><h2 id="themes-title">外观</h2><p class="dialog-context">选择喜欢的工作台风格</p></div><button type="button" class="feature-button" id="themes-close">关闭 ✕</button></div>
+  <div class="theme-choices" role="group" aria-label="主题风格">
+    <button type="button" class="theme-choice" data-theme-choice="warm" aria-pressed="true"><span class="theme-swatch swatch-warm" aria-hidden="true"><i></i><i></i><i></i></span><strong>暖橙</strong><small>温暖、明亮</small></button>
+    <button type="button" class="theme-choice" data-theme-choice="blue" aria-pressed="false"><span class="theme-swatch swatch-blue" aria-hidden="true"><i></i><i></i><i></i></span><strong>湖蓝</strong><small>清爽、专注</small></button>
+    <button type="button" class="theme-choice" data-theme-choice="night" aria-pressed="false"><span class="theme-swatch swatch-night" aria-hidden="true"><i></i><i></i><i></i></span><strong>午夜</strong><small>柔和的深色界面</small></button>
+  </div><p class="field-hint">立即生效，记住这台浏览器的选择。</p>
+</dialog>
+<dialog id="activity-info" class="workbench-dialog" aria-labelledby="activity-info-title">
+  <div class="activity-center-heading"><h2 id="activity-info-title">活动说明</h2><button type="button" class="feature-button" id="activity-info-close" aria-label="关闭活动说明">关闭 ✕</button></div>
+  <div id="activity-info-content" class="activity-info-content"></div>
+</dialog>
+<dialog id="activity-center" aria-labelledby="activity-center-title">
+  <div class="activity-center-heading"><div><span class="eyebrow">INSTALL ONLY WHAT YOU NEED</span><h2 id="activity-center-title">活动中心</h2></div><button type="button" class="feature-button" id="activity-center-close" aria-label="关闭活动中心">关闭 ✕</button></div>
+  <div class="activity-source-toolbar"><select id="activity-source-branch" aria-label="活动源码分支"><option value="main">main</option></select><button type="button" class="feature-button" id="activity-branches-refresh">查找分支</button><span id="activity-source-label" class="activity-source-badge">MiaoTask GitHub 活动源码</span><button type="button" class="feature-button" id="activity-center-refresh">↻ 刷新目录</button></div>
+  <div class="activity-center-body"><p id="activity-center-message" class="field-hint" role="status" aria-live="polite">选择需要的活动，下载后在主页面勾选。</p>
+    <details class="activity-folder"><summary>活动源码保存位置</summary><div class="activity-folder-content"><code id="activity-folder-path">正在读取…</code><button type="button" class="feature-button" id="activity-folder-open">打开文件夹 ↗</button></div></details>
+    <div id="activity-center-list"></div><p class="activity-center-note">仅安装所选活动与共用代码，卸载保留日记录和恢复包；备用通道可能读取源码归档。修改活动前请停止所有设备。</p>
+  </div>
+</dialog><div class="toast" id="toast" role="alert" hidden></div>
+</body>
+</html>
